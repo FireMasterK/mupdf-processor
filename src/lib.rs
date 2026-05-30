@@ -1,10 +1,11 @@
-pub mod config;
 pub mod codec;
+pub mod config;
 pub mod pdf;
 pub mod types;
 pub mod upload;
 pub mod websocket;
 pub mod worker;
+pub mod ws_protocol;
 
 use std::sync::Arc;
 

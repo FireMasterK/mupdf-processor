@@ -1,4 +1,4 @@
-use fory::{ForyStruct, ForyUnion};
+use fory::ForyStruct;
 use serde::Serialize;
 
 #[derive(Debug, Clone, Default, Serialize, ForyStruct)]
@@ -51,42 +51,6 @@ pub struct QuadDto {
     pub ur: PointDto,
     pub ll: PointDto,
     pub lr: PointDto,
-}
-
-#[derive(Debug, Clone, Default, ForyUnion)]
-pub enum WsServerEvent {
-    #[default]
-    Unknown,
-    Accepted {
-        request_id: String,
-    },
-    Page {
-        request_id: String,
-        page_index: u32,
-        total_pages: u32,
-        text: String,
-        rendered_png_bytes: Vec<u8>,
-        blocks: Vec<TextBlockResult>,
-    },
-    Complete {
-        request_id: String,
-        page_count: u32,
-        file_size_bytes: u64,
-    },
-    Error {
-        request_id: Option<String>,
-        message: String,
-    },
-}
-
-#[derive(Debug, Clone, Default, ForyUnion)]
-pub enum WsClientCommand {
-    #[default]
-    Unknown,
-    Upload {
-        file_name: Option<String>,
-        pdf_bytes: Vec<u8>,
-    },
 }
 
 #[derive(Debug)]
@@ -142,4 +106,3 @@ impl From<mupdf::Quad> for QuadDto {
         }
     }
 }
-

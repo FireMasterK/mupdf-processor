@@ -16,8 +16,7 @@ pub struct AppConfig {
 impl AppConfig {
     pub fn from_env() -> Result<Self, io::Error> {
         let bind_addr = parse_bind_addr(
-            env::var("MUPDF_PROCESSOR_BIND")
-                .unwrap_or_else(|_| "0.0.0.0:8080".to_string()),
+            env::var("MUPDF_PROCESSOR_BIND").unwrap_or_else(|_| "0.0.0.0:8080".to_string()),
         )?;
 
         let worker_count = env::var("MUPDF_PROCESSOR_CPUS")

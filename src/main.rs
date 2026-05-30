@@ -13,7 +13,10 @@ use mupdf_processor::config::AppConfig;
 use mupdf_processor::upload::collect_pdf_upload;
 use mupdf_processor::websocket::{WsState, run_websocket_connection};
 use mupdf_processor::worker::{JOB_QUEUE_CAPACITY, Job, JobResultTarget, spawn_workers};
-use mupdf_processor::{AppState, RequestIdGenerator, allocate_request_id, error_response, to_http_error};
+use mupdf_processor::ws_protocol::RenderScale;
+use mupdf_processor::{
+    AppState, RequestIdGenerator, allocate_request_id, error_response, to_http_error,
+};
 
 #[get("/health")]
 async fn health() -> impl Responder {
@@ -26,13 +29,16 @@ async fn process_pdf_json(
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let request_id = allocate_request_id(&state);
-    let upload = collect_pdf_upload(&mut multipart, &state.config).await.map_err(to_http_error)?;
+    let upload = collect_pdf_upload(&mut multipart, &state.config)
+        .await
+        .map_err(to_http_error)?;
     let (tx, rx) = oneshot::channel();
 
     let job = Job {
         request_id: request_id.clone(),
         file_name: upload.file_name.clone(),
         source: upload.source,
+        render_scale: RenderScale::default(),
         result_target: JobResultTarget::Aggregate(tx),
     };
 
@@ -81,9 +87,9 @@ async fn submit_json_job(state: AppState, mut job: Job) -> Result<(), Error> {
                 ErrorInternalServerError(format!("failed to enqueue queued job: {error}"))
             })
         }
-        Err(crossfire::TrySendError::Disconnected(_)) => Err(ErrorInternalServerError(
-            "worker queue is unavailable",
-        )),
+        Err(crossfire::TrySendError::Disconnected(_)) => {
+            Err(ErrorInternalServerError("worker queue is unavailable"))
+        }
     }
 }
 

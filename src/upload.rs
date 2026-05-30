@@ -214,12 +214,9 @@ mod tests {
     #[test]
     fn spill_small_upload_stays_in_memory() {
         let bytes = vec![1, 2, 3];
-        let upload = spill_bytes_if_needed(
-            bytes.clone(),
-            Some("a.pdf".to_string()),
-            &test_config(),
-        )
-        .expect("spill");
+        let upload =
+            spill_bytes_if_needed(bytes.clone(), Some("a.pdf".to_string()), &test_config())
+                .expect("spill");
 
         match upload.source {
             UploadedPdf::Memory(stored) => assert_eq!(stored, bytes),
@@ -230,12 +227,9 @@ mod tests {
     #[test]
     fn spill_large_upload_moves_to_temp_file() {
         let bytes = vec![7_u8; MAX_IN_MEMORY_UPLOAD_BYTES + 1];
-        let upload = spill_bytes_if_needed(
-            bytes.clone(),
-            Some("big.pdf".to_string()),
-            &test_config(),
-        )
-        .expect("spill");
+        let upload =
+            spill_bytes_if_needed(bytes.clone(), Some("big.pdf".to_string()), &test_config())
+                .expect("spill");
 
         match upload.source {
             UploadedPdf::TempFile(path) => {

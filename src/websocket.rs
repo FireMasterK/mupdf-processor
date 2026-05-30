@@ -6,9 +6,9 @@ use tokio::sync::mpsc;
 
 use crate::codec::{WsCodec, send_ws_event};
 use crate::config::AppConfig;
-use crate::types::WsServerEvent;
 use crate::upload::{CollectedUpload, spill_bytes_if_needed};
 use crate::worker::{Job, JobResultTarget};
+use crate::ws_protocol::{ClientCommand, ClientUpload, RenderScale, ServerEvent};
 
 pub const WS_MAX_FRAME_BYTES: usize = 192 * 1024 * 1024;
 
@@ -20,12 +20,8 @@ pub struct WsState {
     pub ws_codec: Arc<WsCodec>,
 }
 
-pub async fn run_websocket_connection(
-    state: WsState,
-    session: Session,
-    msg_stream: MessageStream,
-) {
-    let (event_tx, mut event_rx) = mpsc::unbounded_channel::<WsServerEvent>();
+pub async fn run_websocket_connection(state: WsState, session: Session, msg_stream: MessageStream) {
+    let (event_tx, mut event_rx) = mpsc::unbounded_channel::<ServerEvent>();
     let codec = state.ws_codec.clone();
 
     let mut outbound = session.clone();
@@ -59,10 +55,11 @@ pub async fn run_websocket_connection(
                 handle_ws_binary_command(&state, event_tx.clone(), bytes.to_vec()).await;
             }
             Ok(AggregatedMessage::Text(_)) => {
-                let _ = event_tx.send(WsServerEvent::Error {
+                let _ = event_tx.send(ServerEvent::Error {
                     request_id: None,
-                    message: "text websocket frames are not supported; send Apache Fory binary messages"
-                        .to_string(),
+                    message:
+                        "text websocket frames are not supported; send Apache Fory binary messages"
+                            .to_string(),
                 });
             }
             Ok(AggregatedMessage::Close(reason)) => {
@@ -70,7 +67,7 @@ pub async fn run_websocket_connection(
                 break;
             }
             Err(error) => {
-                let _ = event_tx.send(WsServerEvent::Error {
+                let _ = event_tx.send(ServerEvent::Error {
                     request_id: None,
                     message: format!("websocket protocol error: {error}"),
                 });
@@ -85,13 +82,13 @@ pub async fn run_websocket_connection(
 
 pub async fn handle_ws_binary_command(
     state: &WsState,
-    event_tx: mpsc::UnboundedSender<WsServerEvent>,
+    event_tx: mpsc::UnboundedSender<ServerEvent>,
     payload: Vec<u8>,
 ) {
     let command = match state.ws_codec.decode_command(&payload) {
         Ok(command) => command,
         Err(error) => {
-            let _ = event_tx.send(WsServerEvent::Error {
+            let _ = event_tx.send(ServerEvent::Error {
                 request_id: None,
                 message: error.message,
             });
@@ -100,22 +97,16 @@ pub async fn handle_ws_binary_command(
     };
 
     match command {
-        crate::types::WsClientCommand::Unknown => {
-            let _ = event_tx.send(WsServerEvent::Error {
-                request_id: None,
-                message: "unknown websocket command".to_string(),
-            });
-        }
-        crate::types::WsClientCommand::Upload {
+        ClientCommand::Upload(ClientUpload {
             file_name,
             pdf_bytes,
-        } => {
-            let request_id =
-                crate::allocate_request_id_from_counter(&state.next_request_id);
+            render_scale,
+        }) => {
+            let request_id = crate::allocate_request_id_from_counter(&state.next_request_id);
             let upload = match spill_bytes_if_needed(pdf_bytes, file_name.clone(), &state.config) {
                 Ok(upload) => upload,
                 Err(error) => {
-                    let _ = event_tx.send(WsServerEvent::Error {
+                    let _ = event_tx.send(ServerEvent::Error {
                         request_id: Some(request_id),
                         message: error.message,
                     });
@@ -123,51 +114,51 @@ pub async fn handle_ws_binary_command(
                 }
             };
 
-            submit_ws_job(state, event_tx, request_id, upload).await;
+            submit_ws_job(state, event_tx, request_id, upload, render_scale).await;
         }
     }
 }
 
 async fn submit_ws_job(
     state: &WsState,
-    event_tx: mpsc::UnboundedSender<WsServerEvent>,
+    event_tx: mpsc::UnboundedSender<ServerEvent>,
     request_id: String,
     upload: CollectedUpload,
+    render_scale: RenderScale,
 ) {
     let mut job = Job {
         request_id: request_id.clone(),
         file_name: upload.file_name,
         source: upload.source,
+        render_scale,
         result_target: JobResultTarget::WebSocket(event_tx.clone()),
     };
 
     match state.job_sender.try_send(job) {
         Ok(()) => {
-            let _ = event_tx.send(WsServerEvent::Accepted { request_id });
+            let _ = event_tx.send(ServerEvent::Accepted { request_id });
         }
         Err(TrySendError::Full(full_job)) => {
             job = full_job;
             match job.source.into_temp_file(job.file_name.as_deref()) {
                 Ok(spooled_source) => {
                     job.source = spooled_source;
-                    let _ = event_tx.send(WsServerEvent::Accepted {
+                    let _ = event_tx.send(ServerEvent::Accepted {
                         request_id: request_id.clone(),
                     });
                     let sender = state.job_sender.clone();
                     let error_tx = event_tx.clone();
                     actix_web::rt::spawn(async move {
                         if let Err(error) = sender.send(job).await {
-                            let _ = error_tx.send(WsServerEvent::Error {
+                            let _ = error_tx.send(ServerEvent::Error {
                                 request_id: Some(request_id),
-                                message: format!(
-                                    "failed to enqueue queued websocket job: {error}"
-                                ),
+                                message: format!("failed to enqueue queued websocket job: {error}"),
                             });
                         }
                     });
                 }
                 Err(error) => {
-                    let _ = event_tx.send(WsServerEvent::Error {
+                    let _ = event_tx.send(ServerEvent::Error {
                         request_id: Some(request_id),
                         message: error.message,
                     });
@@ -175,7 +166,7 @@ async fn submit_ws_job(
             }
         }
         Err(TrySendError::Disconnected(disconnected_job)) => {
-            let _ = event_tx.send(WsServerEvent::Error {
+            let _ = event_tx.send(ServerEvent::Error {
                 request_id: Some(disconnected_job.request_id),
                 message: "worker queue is unavailable".to_string(),
             });
