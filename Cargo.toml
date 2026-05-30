@@ -1,0 +1,22 @@
+[package]
+edition = "2024"
+license = "AGPL-3.0"
+name = "mupdf-processor"
+version = "0.1.0"
+
+[dependencies]
+actix-multipart = "0.7.2"
+actix-web = "4.13.0"
+actix-ws = "0.4.0"
+base64 = "0.22.1"
+blake3 = "1.8.5"
+crossfire = "3.1.16"
+fory = "1.0.0"
+fory-core = "1.0.0"
+futures-util = "0.3.32"
+mupdf = {version = "0.7.0", features = ["all-fonts"]}
+serde = {version = "1.0.228", features = ["derive"]}
+serde_json = "1.0.150"
+tempfile = "3.27.0"
+tokio = {version = "1.52.3", features = ["sync"]}
+uuid = {version = "1.18.1", features = ["v4"]}
