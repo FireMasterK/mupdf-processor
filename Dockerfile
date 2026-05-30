@@ -8,6 +8,8 @@ RUN --mount=type=cache,target=/var/cache/apt \
     build-essential \
     clang \
     libclang-dev \
+    libfontconfig1-dev \
+    libfreetype6-dev \
     pkg-config \
     ca-certificates && \
     rm -rf /var/lib/apt/lists/*
@@ -26,7 +28,9 @@ FROM debian:stable-slim
 RUN --mount=type=cache,target=/var/cache/apt \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-    ca-certificates && \
+    ca-certificates \
+    libfontconfig1 \
+    libfreetype6 && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
