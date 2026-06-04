@@ -1,6 +1,47 @@
 use fory::ForyStruct;
 use serde::Serialize;
 
+bitflags::bitflags! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize)]
+    pub struct ResponseOptions: u32 {
+        const RENDER_IMAGE = 0b0001;
+        const TEXT         = 0b0010;
+        const BBOX         = 0b0100;
+        const PAGE_COUNT   = 0b1000;
+        const ALL          = Self::RENDER_IMAGE.bits() | Self::TEXT.bits() | Self::BBOX.bits() | Self::PAGE_COUNT.bits();
+    }
+}
+
+impl ResponseOptions {
+    pub fn from_u32(value: u32) -> Self {
+        Self::from_bits_truncate(value)
+    }
+
+    /// When no options are specified, return everything (backward compatible).
+    pub fn resolve(value: Option<u32>) -> Self {
+        match value {
+            Some(v) => Self::from_bits_truncate(v),
+            None => Self::ALL,
+        }
+    }
+
+    pub fn want_render_image(self) -> bool {
+        self.contains(Self::RENDER_IMAGE)
+    }
+
+    pub fn want_text(self) -> bool {
+        self.contains(Self::TEXT)
+    }
+
+    pub fn want_bbox(self) -> bool {
+        self.contains(Self::BBOX)
+    }
+
+    pub fn want_page_count(self) -> bool {
+        self.contains(Self::PAGE_COUNT)
+    }
+}
+
 #[derive(Debug, Clone, Default, Serialize, ForyStruct)]
 pub struct ProcessingResponse {
     pub request_id: String,

@@ -1,6 +1,6 @@
 use fory::ForyStruct;
 
-use crate::types::{ProcessingFailure, TextBlockResult};
+use crate::types::{ProcessingFailure, ResponseOptions, TextBlockResult};
 
 pub const DEFAULT_RENDER_SCALE: f32 = 1.0;
 
@@ -42,6 +42,7 @@ pub struct ClientUpload {
     pub file_name: Option<String>,
     pub pdf_bytes: Vec<u8>,
     pub render_scale: RenderScale,
+    pub response_options: ResponseOptions,
 }
 
 #[derive(Debug, Clone)]
@@ -99,6 +100,7 @@ impl MessageKind {
 pub struct UploadCommandMeta {
     pub file_name: Option<String>,
     pub render_scale: Option<f32>,
+    pub response_options: Option<u32>,
 }
 
 #[derive(Debug, Clone, Default, ForyStruct)]

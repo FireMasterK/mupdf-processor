@@ -4,7 +4,7 @@ use crossfire::{MAsyncRx, mpmc};
 use tokio::sync::{mpsc, oneshot};
 
 use crate::pdf::{process_pdf_all, process_pdf_streaming};
-use crate::types::{ProcessingFailure, ProcessingResponse};
+use crate::types::{ProcessingFailure, ProcessingResponse, ResponseOptions};
 use crate::upload::UploadedPdf;
 use crate::ws_protocol::{RenderScale, ServerEvent};
 
@@ -14,6 +14,7 @@ pub struct Job {
     pub file_name: Option<String>,
     pub source: UploadedPdf,
     pub render_scale: RenderScale,
+    pub response_options: ResponseOptions,
     pub result_target: JobResultTarget,
 }
 
@@ -33,13 +34,17 @@ pub fn spawn_workers(rx: MAsyncRx<mpmc::Array<Job>>, worker_count: usize) {
 
                     match job.result_target {
                         JobResultTarget::Aggregate(responder) => {
-                            let result =
-                                process_pdf_all(request_id.clone(), job.source, job.render_scale)
-                                    .map_err(|mut error| {
-                                        error.request_id =
-                                            error.request_id.take().or(Some(request_id));
-                                        error
-                                    });
+                            let result = process_pdf_all(
+                                request_id.clone(),
+                                job.source,
+                                job.render_scale,
+                                job.response_options,
+                            )
+                            .map_err(|mut error| {
+                                error.request_id =
+                                    error.request_id.take().or(Some(request_id));
+                                error
+                            });
                             let _ = responder.send(result);
                         }
                         JobResultTarget::WebSocket(event_tx) => {
@@ -47,6 +52,7 @@ pub fn spawn_workers(rx: MAsyncRx<mpmc::Array<Job>>, worker_count: usize) {
                                 request_id.clone(),
                                 job.source,
                                 job.render_scale,
+                                job.response_options,
                                 event_tx.clone(),
                             ) {
                                 error.request_id = error.request_id.take().or(Some(request_id));

@@ -6,11 +6,13 @@ use tokio::sync::mpsc;
 
 use crate::codec::{WsCodec, send_ws_event};
 use crate::config::AppConfig;
-use crate::upload::{CollectedUpload, spill_bytes_if_needed};
+use crate::types::ResponseOptions;
+use crate::upload::{CollectedUpload, MAX_ACCEPTED_UPLOAD_BYTES, spill_bytes_if_needed};
 use crate::worker::{Job, JobResultTarget};
 use crate::ws_protocol::{ClientCommand, ClientUpload, RenderScale, ServerEvent};
 
-pub const WS_MAX_FRAME_BYTES: usize = 192 * 1024 * 1024;
+/// Covers max PDF upload plus Fory command framing overhead.
+pub const WS_MAX_FRAME_BYTES: usize = MAX_ACCEPTED_UPLOAD_BYTES + 4096;
 
 #[derive(Clone)]
 pub struct WsState {
@@ -40,6 +42,7 @@ pub async fn run_websocket_connection(state: WsState, session: Session, msg_stre
 
     let mut session = session;
     let mut aggregated = msg_stream
+        .max_frame_size(WS_MAX_FRAME_BYTES)
         .aggregate_continuations()
         .max_continuation_size(WS_MAX_FRAME_BYTES);
 
@@ -101,6 +104,7 @@ pub async fn handle_ws_binary_command(
             file_name,
             pdf_bytes,
             render_scale,
+            response_options,
         }) => {
             let request_id = crate::allocate_request_id_from_counter(&state.next_request_id);
             let upload = match spill_bytes_if_needed(pdf_bytes, file_name.clone(), &state.config) {
@@ -114,7 +118,7 @@ pub async fn handle_ws_binary_command(
                 }
             };
 
-            submit_ws_job(state, event_tx, request_id, upload, render_scale).await;
+            submit_ws_job(state, event_tx, request_id, upload, render_scale, response_options).await;
         }
     }
 }
@@ -125,12 +129,14 @@ async fn submit_ws_job(
     request_id: String,
     upload: CollectedUpload,
     render_scale: RenderScale,
+    response_options: ResponseOptions,
 ) {
     let mut job = Job {
         request_id: request_id.clone(),
         file_name: upload.file_name,
         source: upload.source,
         render_scale,
+        response_options,
         result_target: JobResultTarget::WebSocket(event_tx.clone()),
     };
 

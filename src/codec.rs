@@ -4,8 +4,8 @@ use actix_ws::Session;
 use fory::Fory;
 
 use crate::types::{
-    PageResult, PointDto, ProcessingFailure, ProcessingResponse, QuadDto, RectDto, TextBlockResult,
-    TextCharResult,
+    PageResult, PointDto, ProcessingFailure, ProcessingResponse, QuadDto, RectDto, ResponseOptions,
+    TextBlockResult, TextCharResult,
 };
 use crate::ws_protocol::{
     AcceptedEventMeta, ClientCommand, ClientUpload, CompleteEventMeta, ErrorEventMeta, MessageKind,
@@ -174,6 +174,7 @@ impl WsCodec {
                     file_name: command.file_name,
                     pdf_bytes: binary_tail.to_vec(),
                     render_scale: RenderScale::resolve(command.render_scale)?,
+                    response_options: ResponseOptions::resolve(command.response_options),
                 }))
             }
             Some(other) => Err(ProcessingFailure {
@@ -213,6 +214,7 @@ mod tests {
                 .serialize(&UploadCommandMeta {
                     file_name: Some("sample.pdf".to_string()),
                     render_scale: Some(2.0),
+                    response_options: None,
                 })
                 .expect("serialize");
             let mut framed = vec![MessageKind::UploadCommand as u8];
@@ -228,6 +230,7 @@ mod tests {
                 file_name,
                 pdf_bytes,
                 render_scale,
+                response_options: _,
             }) => {
                 assert_eq!(file_name.as_deref(), Some("sample.pdf"));
                 assert_eq!(pdf_bytes, b"foo");

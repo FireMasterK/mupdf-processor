@@ -10,6 +10,7 @@ use tokio::sync::oneshot;
 
 use mupdf_processor::codec::WsCodec;
 use mupdf_processor::config::AppConfig;
+use mupdf_processor::types::ResponseOptions;
 use mupdf_processor::upload::collect_pdf_upload;
 use mupdf_processor::websocket::{WsState, run_websocket_connection};
 use mupdf_processor::worker::{JOB_QUEUE_CAPACITY, Job, JobResultTarget, spawn_workers};
@@ -23,22 +24,33 @@ async fn health() -> impl Responder {
     HttpResponse::Ok().json(serde_json::json!({ "status": "ok" }))
 }
 
+#[derive(serde::Deserialize, Default)]
+struct ProcessQueryParams {
+    render_scale: Option<f32>,
+    response_options: Option<u32>,
+}
+
 #[post("/process/json")]
 async fn process_pdf_json(
     mut multipart: Multipart,
+    query: web::Query<ProcessQueryParams>,
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let request_id = allocate_request_id(&state);
     let upload = collect_pdf_upload(&mut multipart, &state.config)
         .await
         .map_err(to_http_error)?;
+    let render_scale = RenderScale::resolve(query.render_scale)
+        .map_err(to_http_error)?;
+    let response_options = ResponseOptions::resolve(query.response_options);
     let (tx, rx) = oneshot::channel();
 
     let job = Job {
         request_id: request_id.clone(),
         file_name: upload.file_name.clone(),
         source: upload.source,
-        render_scale: RenderScale::default(),
+        render_scale,
+        response_options,
         result_target: JobResultTarget::Aggregate(tx),
     };
 
