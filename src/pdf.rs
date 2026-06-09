@@ -1,5 +1,3 @@
-use std::fs;
-
 use base64::Engine;
 use mupdf::{Colorspace, Document, Matrix, TextPageFlags};
 use tokio::sync::mpsc;
@@ -129,23 +127,11 @@ fn render_page_to_png(
     let pixmap = page
         .to_pixmap(&transform, &colorspace, false, false)
         .map_err(ProcessingFailure::from)?;
-    let temp_png = tempfile::Builder::new()
-        .prefix("mupdf-render-")
-        .suffix(".png")
-        .tempfile()
-        .map_err(|error| ProcessingFailure {
-            request_id: None,
-            message: error.to_string(),
-        })?;
-    let temp_path = temp_png.path().to_string_lossy().into_owned();
-
+    let mut png_bytes = Vec::new();
     pixmap
-        .save_as(&temp_path, mupdf::ImageFormat::PNG)
+        .write_to(&mut png_bytes, mupdf::ImageFormat::PNG)
         .map_err(ProcessingFailure::from)?;
-    fs::read(temp_png.path()).map_err(|error| ProcessingFailure {
-        request_id: None,
-        message: error.to_string(),
-    })
+    Ok(png_bytes)
 }
 
 pub(crate) fn process_pdf_all(
