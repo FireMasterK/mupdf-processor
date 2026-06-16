@@ -879,12 +879,13 @@ dependencies = [
 
 [[package]]
 name = "fory-core"
-version = "1.1.0"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d8ef8bab25e95a3e186e7f945b31f55d54da6807f1c663985ea8e6031be3624"
+checksum = "659079eef34587d1e9470606688f59a195babfe38b491e7adfabfabc6fab7d13"
 dependencies = [
  "byteorder",
  "num-bigint",
+ "num-traits",
  "num_enum",
  "paste",
  "thiserror 1.0.69",
