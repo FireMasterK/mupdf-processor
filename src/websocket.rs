@@ -118,7 +118,15 @@ pub async fn handle_ws_binary_command(
                 }
             };
 
-            submit_ws_job(state, event_tx, request_id, upload, render_scale, response_options).await;
+            submit_ws_job(
+                state,
+                event_tx,
+                request_id,
+                upload,
+                render_scale,
+                response_options,
+            )
+            .await;
         }
     }
 }

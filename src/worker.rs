@@ -41,8 +41,7 @@ pub fn spawn_workers(rx: MAsyncRx<mpmc::Array<Job>>, worker_count: usize) {
                                 job.response_options,
                             )
                             .map_err(|mut error| {
-                                error.request_id =
-                                    error.request_id.take().or(Some(request_id));
+                                error.request_id = error.request_id.take().or(Some(request_id));
                                 error
                             });
                             let _ = responder.send(result);

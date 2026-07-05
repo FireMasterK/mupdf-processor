@@ -2,6 +2,11 @@ use std::io;
 use std::sync::Arc;
 use std::time::Duration;
 
+use mimalloc::MiMalloc;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
 use actix_multipart::Multipart;
 use actix_web::error::ErrorInternalServerError;
 use actix_web::{App, Error, HttpRequest, HttpResponse, HttpServer, Responder, get, post, web};
@@ -40,8 +45,7 @@ async fn process_pdf_json(
     let upload = collect_pdf_upload(&mut multipart, &state.config)
         .await
         .map_err(to_http_error)?;
-    let render_scale = RenderScale::resolve(query.render_scale)
-        .map_err(to_http_error)?;
+    let render_scale = RenderScale::resolve(query.render_scale).map_err(to_http_error)?;
     let response_options = ResponseOptions::resolve(query.response_options);
     let (tx, rx) = oneshot::channel();
 

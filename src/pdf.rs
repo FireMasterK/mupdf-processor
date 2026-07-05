@@ -148,7 +148,12 @@ pub(crate) fn process_pdf_all(
     let pages = if options.want_text() || options.want_bbox() || options.want_render_image() {
         let mut pages = Vec::with_capacity(page_count as usize);
         for page_index in 0..page_count {
-            pages.push(extract_page_result(&doc, page_index, render_scale, options)?);
+            pages.push(extract_page_result(
+                &doc,
+                page_index,
+                render_scale,
+                options,
+            )?);
         }
         pages
     } else {
