@@ -2,10 +2,10 @@ use std::io;
 use std::sync::Arc;
 use std::time::Duration;
 
-use tcmalloc_better::TCMalloc;
+use mimalloc::MiMalloc;
 
 #[global_allocator]
-static GLOBAL: TCMalloc = TCMalloc;
+static GLOBAL: MiMalloc = MiMalloc;
 
 use actix_multipart::Multipart;
 use actix_web::error::ErrorInternalServerError;
@@ -111,9 +111,7 @@ async fn submit_json_job(state: AppState, mut job: Job) -> Result<(), Error> {
 
 #[actix_web::main]
 async fn main() -> io::Result<()> {
-    TCMalloc::process_background_actions_thread();
     crossfire::detect_backoff_cfg();
-
     let config = AppConfig::from_env()?;
 
     let ws_codec = Arc::new(
