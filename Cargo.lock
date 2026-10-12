@@ -863,9 +863,9 @@ dependencies = [
 
 [[package]]
 name = "fory-core"
-version = "1.7.6"
+version = "1.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e1dc0451c539249ccdca57af6bb20d723768dee5557fb898da5b8e518305fa0"
+checksum = "07d0c722a372a8f1b602a29217ddbecd436f3cd0a869d3033d0ac0a4891b0f35"
 dependencies = [
  "byteorder",
  "num-bigint",
