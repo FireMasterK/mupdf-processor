@@ -21,14 +21,14 @@ dependencies = [
 
 [[package]]
 name = "actix-http"
-version = "3.20.0"
+version = "3.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d20a22850ea7fecad12c5f8cd97d246c3af1f04ef400033977c2f13425c45816"
+checksum = "b84fab278c42604ffa12758710c6f5492d31acc95c13045165e043e57136462e"
 dependencies = [
  "actix-codec",
  "actix-service",
  "actix-utils",
- "base64 0.22.1",
+ "base64",
  "bitflags 2.13.2",
  "brotli",
  "bytes",
@@ -169,9 +169,9 @@ dependencies = [
 
 [[package]]
 name = "actix-web"
-version = "4.18.1"
+version = "4.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81f8da0d2ae4200dde8773d72ba47a65c220b251ba7b9248db5bd263c247e959"
+checksum = "697d10a06f7a550791dcb963e3090aa5c65c4d94c029114814a4bd652f30f0b4"
 dependencies = [
  "actix-codec",
  "actix-http",
@@ -280,12 +280,6 @@ name = "autocfg"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
-
-[[package]]
-name = "base64"
-version = "0.22.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
 name = "base64"
@@ -1375,7 +1369,7 @@ dependencies = [
  "actix-multipart",
  "actix-web",
  "actix-ws",
- "base64 0.23.1",
+ "base64",
  "bitflags 2.13.2",
  "blake3",
  "crossfire",
